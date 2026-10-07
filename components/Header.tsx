@@ -111,7 +111,7 @@ export default function Header({ onNavigate }: HeaderProps) {
             onPress={() => setMenuAbierto(false)}
           />
 
-          {/* PANEL */}
+          {/* PANEL PRINCIPAL */}
           <View className="h-full w-[82%] bg-white px-5 pt-12">
 
             {/* CABECERA DEL MENÚ */}
