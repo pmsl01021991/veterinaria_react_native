@@ -4,12 +4,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type HeaderProps = {
-  onNavigate: (section: string) => void;
+  onNavigate?: (section: string) => void;
+  soloMenu?: boolean;
+  compacto?: boolean;
 };
 
 const logo = require('../assets/huellitas/Imagenes/LOGO2.png');
 
-export default function Header({ onNavigate }: HeaderProps) {
+export default function Header({ onNavigate, soloMenu = false, compacto = false }: HeaderProps) {
 
   const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -41,7 +43,12 @@ export default function Header({ onNavigate }: HeaderProps) {
 
   const navegar = (section: string) => {
     setMenuAbierto(false);
-    onNavigate(section);
+
+    if (onNavigate) {
+      onNavigate(section);
+    } else {
+      router.push('/' as any);
+    }
   };
 
   const cerrarSesion = async () => {
@@ -56,43 +63,52 @@ export default function Header({ onNavigate }: HeaderProps) {
   return (
     <>
       {/* HEADER */}
-      <View className="bg-white px-4 pb-3 pt-10 shadow-sm">
-
-        <View className="flex-row items-center">
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => navegar('inicio')}
-            className="shrink-0"
+      <View
+          className={
+            compacto
+              ? 'bg-transparent'
+              : 'bg-white px-4 pt-10 pb-3 shadow-sm'
+          }
+        >
+        <View
+            className={`flex-row items-center justify-end ${
+              compacto ? '' : 'px-4'
+            }`}
           >
-            <Image
-              source={logo}
-              className="h-14 w-44"
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          {!soloMenu && (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => navegar('inicio')}
+                  className="shrink-0"
+                >
+                  <Image
+                    source={logo}
+                    className="h-14 w-44"
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
 
-          <View className="flex-1 items-center px-2">
-            {usuario && (
-              <Text
-                numberOfLines={1}
-                className="text-sm font-bold text-[#263b52]"
-              >
-                Bienvenido, {usuario.name || usuario.username?.split('@')[0]}
-              </Text>
+                <View className="flex-1 items-center px-2">
+                  {usuario && (
+                    <Text
+                      numberOfLines={1}
+                      className="text-sm font-bold text-[#263b52]"
+                    >
+                      Bienvenido, {usuario.name || usuario.username?.split('@')[0]}
+                    </Text>
+                  )}
+                </View>
+              </>
             )}
-          </View>
 
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setMenuAbierto(true)}
             className="h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#377fb2]"
           >
-            <Text className="text-3xl font-bold text-white">
-              ☰
-            </Text>
+            <Text className="text-3xl font-bold text-white">☰</Text>
           </TouchableOpacity>
-
         </View>
       </View>
 

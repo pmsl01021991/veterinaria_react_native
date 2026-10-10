@@ -1,14 +1,5 @@
 import { useRef } from 'react';
-import {
-  Image,
-  Linking,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-
+import { Image, Linking, ScrollView, Text, TouchableOpacity, useWindowDimensions, View,} from 'react-native';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 

@@ -6,6 +6,7 @@ import { collection, getDocs, orderBy, query, doc, updateDoc, deleteDoc, addDoc,
 import { db } from '@/services/firebase';
 import CitaCard, { type Cita } from '@/components/citas/CitaCard';
 import CitaFormulario from '@/components/citas/CitaFormulario';
+import Header from '../components/Header';
 
 export default function Citas() {
   const [citas, setCitas] = useState<Cita[]>([]);
@@ -188,10 +189,14 @@ export default function Citas() {
 
   return (
     <View className="flex-1 bg-[#f5f7fb]">
-      <View className="bg-[#7b3fe4] px-5 pt-12 pb-5">
-        <Text className="text-white text-2xl font-bold text-center">
-          📅 Citas de Mascotas
-        </Text>
+      <View className="flex-row items-center bg-[#7b3fe4] px-4 pt-10 pb-4">
+        <View className="flex-1 items-center">
+          <Text className="text-white text-xl font-bold text-center">
+            📅 Citas de Mascotas
+          </Text>
+        </View>
+
+        <Header soloMenu compacto />
       </View>
 
       {cargando ? (
