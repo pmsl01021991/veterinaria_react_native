@@ -8,7 +8,7 @@ export default function Calendario() {
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   const [servicios, setServicios] = useState<any[]>([]);
-  const [servicioSeleccionado, setServicioSeleccionado] = useState<number | null>(null);
+  const [servicioSeleccionado, setServicioSeleccionado] = useState<string | null>(null);
   const [nombreServicioSeleccionado, setNombreServicioSeleccionado] = useState('');
   const [paso, setPaso] = useState(0);
   const [cargandoServicios, setCargandoServicios] = useState(false);
@@ -25,7 +25,16 @@ export default function Calendario() {
   const [notasAdicionales, setNotasAdicionales] = useState('');
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
 
-  const hoy = new Date().toISOString().split('T')[0];
+  const obtenerFechaLocal = () => {
+    const fecha = new Date();
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+
+    return `${anio}-${mes}-${dia}`;
+    };
+
+    const hoy = obtenerFechaLocal();
 
   const seleccionarFecha = async (day: DateData) => {
     if (day.dateString < hoy) {
@@ -88,19 +97,41 @@ export default function Calendario() {
             ];
 
             const consulta = query(
-            collection(db, 'citas'),
+            collection(db, 'mascotas'),
             where('fecha', '==', fechaSeleccionada)
             );
 
             const snapshot = await getDocs(consulta);
 
-            const horasOcupadas = snapshot.docs
-                .map(doc => doc.data().hora)
-                .filter(Boolean);
+            const horasOcupadasFirestore = snapshot.docs
+            .filter((documento) => {
+                const estado = String(
+                documento.data().estado || ''
+                ).toLowerCase();
 
-            setHorasOcupadas(horasOcupadas);
+                return estado !== 'cancelada' &&
+                estado !== 'cancelado';
+            })
+            .map((documento) => String(documento.data().hora || ''))
+            .filter(Boolean);
 
+            const ahora = new Date();
+            const horaActual =
+            `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+            const horasBloqueadas = fechaSeleccionada === hoy
+            ? [
+                ...horasOcupadasFirestore,
+                ...horasBase.filter((hora) => hora <= horaActual),
+                ]
+            : horasOcupadasFirestore;
+
+            setHorasOcupadas([...new Set(horasBloqueadas)]);
             setHorasDisponibles(horasBase);
+
+            if (horasBloqueadas.includes(horaSeleccionada)) {
+            setHoraSeleccionada('');
+            }
         } catch (error) {
             console.error('Error al cargar horarios:', error);
 
@@ -149,43 +180,66 @@ export default function Calendario() {
                 estado: 'Pendiente',
                 };
 
+                const consultaActualizada = query(
+                    collection(db, 'mascotas'),
+                    where('fecha', '==', fechaSeleccionada)
+                    );
+
+                    const reservasActualizadas = await getDocs(consultaActualizada);
+
+                    const horarioOcupado = reservasActualizadas.docs.some((documento) => {
+                    const reserva = documento.data();
+                    const estado = String(reserva.estado || '').toLowerCase();
+
+                    return reserva.hora === horaSeleccionada &&
+                        estado !== 'cancelada' &&
+                        estado !== 'cancelado';
+                    });
+
+                    const ahora = new Date();
+                    const horaActual =
+                    `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+                    if (
+                    horarioOcupado ||
+                    (fechaSeleccionada === obtenerFechaLocal() &&
+                        horaSeleccionada <= horaActual)
+                    ) {
+                    Alert.alert(
+                        'Horario no disponible',
+                        'Esta hora ya está ocupada o ya pasó. Selecciona otra.'
+                    );
+
+                    await cargarHorasDisponibles();
+                    setPaso(2);
+                    return;
+                    }
+
                 await addDoc(collection(db, 'mascotas'), datosMascota);
 
-                const datosCita = {
-                fecha: fechaSeleccionada,
-                hora: horaSeleccionada,
-                servicio: nombreServicioSeleccionado,
-                nombreMascota: nombreMascota.trim(),
-                duenio: nombreDueno.trim(),
-                telefono: telefonoDueno,
-                notasAdicionales: notasAdicionales.trim(),
+                setModalVisible(false);
+                Alert.alert('Éxito', 'Tu cita se registró correctamente.');
+
+                setFechaSeleccionada('');
+                setHoraSeleccionada('');
+                setServicioSeleccionado(null);
+                setNombreServicioSeleccionado('');
+                setTipoMascota('');
+                setNombreMascota('');
+                setRazaMascota('');
+                setEdadMascota('');
+                setNombreDueno('');
+                setTelefonoDueno('');
+                setNotasAdicionales('');
+                setPaso(0);
+                } catch (error) {
+                console.error('Error al registrar la cita:', error);
+                Alert.alert('Error', 'No se pudo registrar la cita.');
+                } finally {
+                setCargandoHoras(false);
+                }
                 };
 
-                await addDoc(collection(db, 'citas'), datosCita);
-
-                Alert.alert(
-                'Reserva confirmada',
-                'La cita se ha registrado correctamente.',
-                [
-                    {
-                    text: 'OK',
-                    onPress: () => {
-                        setModalVisible(false);
-                        setPaso(1);
-                    },
-                    },
-                ]
-                );
-
-            } catch (error) {
-                console.error('Error al guardar la reserva:', error);
-
-                Alert.alert(
-                'Error',
-                'No se pudo guardar la reserva. Inténtalo nuevamente.'
-                );
-            }
-            };
 
   return (
     <View className="flex-1 bg-[#f5f7fb] px-5 pt-6">

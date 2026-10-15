@@ -1,17 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert,} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { Cita } from './CitaCard';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/services/firebase';
 
 interface Props {
   visible: boolean;
@@ -40,6 +32,38 @@ export default function CitaFormulario({
   onGuardar,
 }: Props) {
   const [datos, setDatos] = useState<Partial<Cita>>({});
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const [mostrarHoras, setMostrarHoras] = useState(false);
+  const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
+  const [cargandoHoras, setCargandoHoras] = useState(false);
+
+  const horariosDisponibles = [
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '14:00',
+    '15:00',
+    '16:00',
+  ];
+
+  const obtenerFechaLocal = () => {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+
+    return `${anio}-${mes}-${dia}`;
+  };
+
+  const convertirFecha = (fecha: string) => {
+    if (!fecha) return new Date();
+
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    return new Date(anio, mes - 1, dia);
+  };
+
+  const fechaMinima = obtenerFechaLocal();
 
   useEffect(() => {
     if (cita) {
@@ -59,6 +83,14 @@ export default function CitaFormulario({
       });
     }
   }, [cita]);
+
+  useEffect(() => {
+  if (visible && datos.fecha) {
+    cargarHorasOcupadas(datos.fecha);
+  } else {
+    setHorasOcupadas([]);
+  }
+}, [visible, datos.fecha, cita]);
 
   const cambiar = (campo: keyof Cita, valor: string) => {
     setDatos((actuales) => ({
@@ -92,6 +124,47 @@ export default function CitaFormulario({
       />
     </View>
   );
+
+  const cargarHorasOcupadas = async (fecha: string) => {
+  if (!fecha) {
+    setHorasOcupadas([]);
+    return;
+  }
+
+  try {
+    setCargandoHoras(true);
+
+    const consulta = query(
+      collection(db, 'mascotas'),
+      where('fecha', '==', fecha)
+    );
+
+    const resultado = await getDocs(consulta);
+
+    const ocupadas = resultado.docs
+      .filter((documento) => {
+        const reserva = documento.data();
+        const estado = String(reserva.estado || '').toLowerCase();
+
+        return documento.id !== (cita as any)?.id &&
+          estado !== 'cancelada' &&
+          estado !== 'cancelado';
+      })
+      .map((documento) => String(documento.data().hora || ''))
+      .filter(Boolean);
+
+    setHorasOcupadas(ocupadas);
+  } catch (error) {
+    console.error('Error al consultar horarios:', error);
+
+    Alert.alert(
+      'Error',
+      'No se pudo consultar la disponibilidad de horarios.'
+    );
+  } finally {
+    setCargandoHoras(false);
+  }
+};
 
   return (
     <Modal
@@ -182,8 +255,120 @@ export default function CitaFormulario({
             ))}
           </View>
 
-          {campo('Fecha (AAAA-MM-DD)', 'fecha')}
-          {campo('Hora (HH:MM)', 'hora')}
+          {/* FECHA */}
+          <View className="mb-4">
+            <Text className="text-[#263b52] font-semibold mb-2">
+              Fecha de la cita
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setMostrarCalendario(true)}
+              className="border border-gray-200 rounded-xl px-4 py-4 bg-white"
+            >
+              <Text className="text-[#263b52]">
+                {datos.fecha || 'Seleccionar fecha'}
+              </Text>
+            </TouchableOpacity>
+
+            {mostrarCalendario && (
+              <DateTimePicker
+                value={convertirFecha(datos.fecha || fechaMinima)}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={convertirFecha(fechaMinima)}
+                onChange={(evento, fechaSeleccionada) => {
+                  setMostrarCalendario(Platform.OS === 'ios');
+
+                  if (fechaSeleccionada) {
+                    const anio = fechaSeleccionada.getFullYear();
+                    const mes = String(fechaSeleccionada.getMonth() + 1).padStart(2, '0');
+                    const dia = String(fechaSeleccionada.getDate()).padStart(2, '0');
+                    const fechaFormateada = `${anio}-${mes}-${dia}`;
+
+                    cambiar('fecha', fechaFormateada);
+                  }
+                }}
+              />
+            )}
+          </View>
+
+          {/* HORA */}
+          <View className="mb-4">
+            <Text className="text-[#263b52] font-semibold mb-2">
+              Hora de la cita
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setMostrarHoras(!mostrarHoras)}
+              className="border border-gray-200 rounded-xl px-4 py-4 bg-white"
+            >
+              <Text className="text-[#263b52]">
+                {datos.hora || 'Seleccionar hora'}　⌄
+              </Text>
+            </TouchableOpacity>
+
+            
+            {mostrarHoras && (
+              <View className="mt-2 rounded-xl border border-gray-200 bg-white overflow-hidden">
+                {cargandoHoras ? (
+                  <Text className="text-gray-500 py-3 text-center">
+                    Consultando disponibilidad...
+                  </Text>
+                ) : (
+                  horariosDisponibles.map((hora) => {
+                    const horaOriginal =
+                      modo === 'editar' &&
+                      cita?.fecha === datos.fecha &&
+                      cita?.hora === hora;
+
+                    const ahora = new Date();
+                    const horaActual =
+                      `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+                    const horaPasada =
+                      datos.fecha === obtenerFechaLocal() &&
+                      hora <= horaActual &&
+                      !horaOriginal;
+
+                    const ocupada =
+                      (horasOcupadas.includes(hora) && !horaOriginal) ||
+                      horaPasada;
+
+                    return (
+                      <TouchableOpacity
+                        key={hora}
+                        disabled={ocupada || cargandoHoras}
+                        onPress={() => {
+                          cambiar('hora', hora);
+                          setMostrarHoras(false);
+                        }}
+                        className={`px-4 py-3 border-b border-gray-100 ${
+                          ocupada
+                            ? 'bg-gray-200'
+                            : datos.hora === hora
+                            ? 'bg-purple-100'
+                            : ''
+                        }`}
+                      >
+                        <Text
+                          className={`${
+                            ocupada
+                              ? 'text-gray-400'
+                              : datos.hora === hora
+                              ? 'text-[#7b3fe4] font-bold'
+                              : 'text-[#263b52]'
+                          }`}
+                        >
+                          {hora}{ocupada ? ' · No disponible' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </View>
+            )}
+            </View>
+
 
           <Text className="text-[#263b52] font-semibold mb-2">
             Estado
@@ -222,21 +407,57 @@ export default function CitaFormulario({
           <View className="gap-3 mt-2">
             <TouchableOpacity
               disabled={guardando}
+              
               onPress={() => {
                 if (
-                    !datos.duenio?.trim() ||
-                    !datos.nombre?.trim() ||
-                    !datos.telefono?.trim()
+                  !datos.duenio?.trim() ||
+                  !datos.nombre?.trim() ||
+                  !datos.telefono?.trim() ||
+                  !datos.fecha ||
+                  !datos.hora
                 ) {
-                    Alert.alert(
+                  Alert.alert(
                     'Campos obligatorios',
-                    'Completa el nombre del dueño, la mascota y el teléfono.'
-                    );
-                    return;
+                    'Completa el dueño, la mascota, el teléfono, la fecha y la hora.'
+                  );
+                  return;
+                }
+
+                const ahora = new Date();
+                const horaActual =
+                  `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+                const conservaHoraOriginal =
+                  modo === 'editar' &&
+                  cita?.fecha === datos.fecha &&
+                  cita?.hora === datos.hora;
+
+                const citaCancelada =
+                  ['cancelada', 'cancelado'].includes(
+                    String(datos.estado || '').toLowerCase()
+                  );
+
+                if (
+                  !citaCancelada &&
+                  (
+                    horasOcupadas.includes(datos.hora || '') ||
+                    (
+                      datos.fecha === obtenerFechaLocal() &&
+                      datos.hora! <= horaActual &&
+                      !conservaHoraOriginal
+                    )
+                  )
+                ) {
+                  Alert.alert(
+                    'Horario no disponible',
+                    'Esta hora ya está ocupada o ya pasó. Selecciona otra.'
+                  );
+                  return;
                 }
 
                 onGuardar(datos);
-                }}
+              }}
+
               className={`py-4 rounded-xl items-center ${
                 guardando ? 'bg-purple-300' : 'bg-[#7b3fe4]'
               }`}

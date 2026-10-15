@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput,} from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { collection, getDocs, orderBy, query, doc, updateDoc, deleteDoc, addDoc,} from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import CitaCard, { type Cita } from '@/components/citas/CitaCard';
 import CitaFormulario from '@/components/citas/CitaFormulario';
@@ -83,6 +83,68 @@ export default function Citas() {
 
     try {
       setGuardando(true);
+
+      
+      const fecha = datos.fecha || '';
+      const hora = datos.hora || '';
+
+      const estadoCancelado = ['cancelada', 'cancelado'].includes(
+        String(datos.estado || '').toLowerCase()
+      );
+
+      if (fecha && hora && !estadoCancelado) {
+        const consulta = query(
+          collection(db, 'mascotas'),
+          where('fecha', '==', fecha)
+        );
+
+        const resultado = await getDocs(consulta);
+
+        const horarioOcupado = resultado.docs.some((documento) => {
+          if (
+            modoFormulario === 'editar' &&
+            documento.id === citaEditando?.id
+          ) {
+            return false;
+          }
+
+          const reserva = documento.data();
+          const estado = String(reserva.estado || '').toLowerCase();
+
+          return (
+            reserva.hora === hora &&
+            estado !== 'cancelada' &&
+            estado !== 'cancelado'
+          );
+        });
+
+        const ahora = new Date();
+        const horaActual =
+          `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+        const conservaHoraOriginal =
+          modoFormulario === 'editar' &&
+          citaEditando?.fecha === fecha &&
+          citaEditando?.hora === hora;
+
+        const horaPasada =
+          fecha === [
+            ahora.getFullYear(),
+            String(ahora.getMonth() + 1).padStart(2, '0'),
+            String(ahora.getDate()).padStart(2, '0'),
+          ].join('-') &&
+          hora <= horaActual &&
+          !conservaHoraOriginal;
+
+        if (horarioOcupado || horaPasada) {
+          Alert.alert(
+            'Horario no disponible',
+            'Esta hora ya está ocupada o ya pasó. Selecciona otra.'
+          );
+          return;
+        }
+      }
+
 
       const datosActualizados = {
         duenio: datos.duenio.trim(),
