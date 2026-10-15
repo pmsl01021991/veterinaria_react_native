@@ -61,6 +61,33 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
     router.replace('/');
   };
 
+  
+  const navegarCitas = () => {
+    setMenuAbierto(false);
+
+    if (!usuario) {
+      router.push('/login' as any);
+      return;
+    }
+
+    if (usuario.rol !== 'admin') {
+      return;
+    }
+
+    router.push('/citas' as any);
+  };
+
+  const navegarAdopcion = () => {
+    setMenuAbierto(false);
+
+    if (!usuario) {
+      router.push('/login' as any);
+      return;
+    }
+
+    router.push('/adopcion');
+  };
+
   return (
     <>
       {/* HEADER */}
@@ -180,10 +207,7 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                 <TouchableOpacity
                   activeOpacity={0.7}
                   className="mb-2 flex-row items-center rounded-xl px-4 py-4"
-                  onPress={() => {
-                    setMenuAbierto(false);
-                    router.push('/citas' as any);
-                  }}
+                  onPress={navegarCitas}
                 >
                   <Text className="mr-4 text-xl">
                     📅
@@ -214,11 +238,12 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                 </TouchableOpacity>
 
 
+                
                 {/* ADOPCIÓN */}
                 <TouchableOpacity
                   activeOpacity={0.7}
                   className="mb-2 flex-row items-center rounded-xl px-4 py-4"
-                  onPress={() => setMenuAbierto(false)}
+                  onPress={navegarAdopcion}
                 >
                   <Text className="mr-4 text-xl">
                     🐾
@@ -228,6 +253,7 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                     Adopción
                   </Text>
                 </TouchableOpacity>
+
 
                 {/* PANEL DE ADMINISTRACIÓN */}
                 <TouchableOpacity
@@ -311,10 +337,18 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
 
                 {/* SEPARAR CITA */}
                 <TouchableOpacity
+                 
                   onPress={() => {
                     setMenuAbierto(false);
+
+                    if (!usuario) {
+                      router.push('/login' as any);
+                      return;
+                    }
+
                     router.push('/calendario' as any);
                   }}
+
                   className="flex-row items-center border-b border-gray-200 px-5 py-4"
                 >
                   <Text className="mr-3 text-xl">
@@ -326,11 +360,12 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                   </Text>
                 </TouchableOpacity>
 
+                
                 {/* ADOPCIÓN */}
                 <TouchableOpacity
                   activeOpacity={0.7}
                   className="mb-2 flex-row items-center rounded-xl px-4 py-4"
-                  onPress={() => setMenuAbierto(false)}
+                  onPress={navegarAdopcion}
                 >
                   <Text className="mr-4 text-xl">
                     🐾
@@ -340,6 +375,7 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                     Adopción
                   </Text>
                 </TouchableOpacity>
+
 
                 {/* SESIÓN */}
                 {usuario ? (
