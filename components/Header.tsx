@@ -3,6 +3,7 @@ import { Image, Modal, Pressable, Text, TouchableOpacity, View,} from 'react-nat
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 type HeaderProps = {
   onNavigate?: (section: string) => void;
   soloMenu?: boolean;
@@ -155,20 +156,25 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
 
             {usuario?.rol === 'admin' ? (
               <>
-                {/* MASCOTAS */}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  className="mb-2 flex-row items-center rounded-xl px-4 py-4"
-                  onPress={() => setMenuAbierto(false)}
-                >
-                  <Text className="mr-4 text-xl">
-                    🐾
-                  </Text>
+                
+              {/* MASCOTAS */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                className="mb-2 flex-row items-center rounded-xl px-4 py-4"
+                onPress={() => {
+                  setMenuAbierto(false);
+                  router.push('/mascotas' as any);
+                }}
+              >
+                <Text className="mr-4 text-xl">
+                  🐾
+                </Text>
 
-                  <Text className="text-base text-gray-700">
-                    Mascotas
-                  </Text>
-                </TouchableOpacity>
+                <Text className="text-base text-gray-700">
+                  Mascotas
+                </Text>
+              </TouchableOpacity>
+
 
                 {/* CITAS */}
                 <TouchableOpacity
@@ -188,11 +194,15 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                   </Text>
                 </TouchableOpacity>
 
+                
                 {/* HISTORIAL */}
                 <TouchableOpacity
                   activeOpacity={0.7}
                   className="mb-2 flex-row items-center rounded-xl px-4 py-4"
-                  onPress={() => setMenuAbierto(false)}
+                  onPress={() => {
+                    setMenuAbierto(false);
+                    router.push('/historial' as any);
+                  }}
                 >
                   <Text className="mr-4 text-xl">
                     📋
@@ -202,6 +212,7 @@ export default function Header({ onNavigate, soloMenu = false, compacto = false 
                     Historial
                   </Text>
                 </TouchableOpacity>
+
 
                 {/* ADOPCIÓN */}
                 <TouchableOpacity
