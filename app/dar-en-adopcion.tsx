@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -380,7 +379,6 @@ export default function DarEnAdopcionScreen() {
               { etiqueta: '🐶 Perro', valor: 'perro' },
               { etiqueta: '🐱 Gato', valor: 'gato' },
               { etiqueta: '🐦 Ave', valor: 'ave' },
-              { etiqueta: '🐰 Conejo', valor: 'conejo' },
               { etiqueta: '🐾 Otro', valor: 'otro' },
             ])}
 
